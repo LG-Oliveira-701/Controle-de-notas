@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Diário Escolar - Grade Tracker</title>
+    <link rel="icon" type="image/png" href="kitty.png">
+    <style>
+        :root {
+            --primary: #eb96ca;
+            --primary-hover: #c46fa3;
+            --bg-color: #f3f4f6;
+            --surface: #ffffff;
+            --text: #1f2937;
+            --text-light: #6b7280;
+            --border: #e5e7eb;
+            --success: #10b981;
+            --success-bg: #d1fae5;
+            --danger: #ef4444;
+            --danger-hover: #dc2626;
+            --danger-bg: #fee2e2;
+        }
+        * { box-sizing: border-box; font-family: 'Segoe UI', system-ui, sans-serif; margin: 0; padding: 0; }
+        body { background-color: var(--bg-color); color: var(--text); padding: 20px; }
+        
+        .custom-icon {
+        width: 60px;
+        height: 60px;
+        object-fit: contain; /* Mantém a proporção do PNG */
+}
+        /* Cabeçalho */
+        .header { display: flex; align-items: center; margin-bottom: 30px; padding-bottom: 20px; border-bottom: 1px solid var(--border); }
+        .header h1 { font-size: 24px; color: var(--primary); display: flex; align-items: center; gap: 10px; }
+        
+        /* Layout Principal */
+        .main-layout { display: flex; flex-direction: column; gap: 20px; }
+        
+        /* Seção de Turmas */
+        .classes-section { background: var(--surface); padding: 20px; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+        .classes-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
+        .classes-header h2 { font-size: 18px; color: var(--text); display: flex; align-items: center; gap: 8px; }
+        .classes-grid { display: flex; gap: 15px; flex-wrap: wrap; }
+        
+        .class-card { border: 1px solid var(--border); padding: 15px; border-radius: 8px; cursor: pointer; min-width: 200px; display: flex; justify-content: space-between; align-items: flex-start; transition: 0.2s; background: var(--bg-color); }
+        .class-card:hover { border-color: var(--primary); }
+        .class-card.active { border-color: var(--primary); background: #eef2ff; }
+        .class-info h3 { font-size: 16px; margin-bottom: 4px; }
+        .class-info p { font-size: 13px; color: var(--text-light); }
+        
+        /* Botões */
+        .btn { background: var(--primary); color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-weight: 500; font-size: 14px; transition: 0.2s; display: inline-flex; align-items: center; gap: 6px; }
+        .btn:hover { background: var(--primary-hover); }
+        .btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text); }
+        .btn-outline:hover { background: var(--bg-color); }
+        .btn-danger { background: var(--danger); }
+        .btn-danger:hover { background: var(--danger-hover); }
+        .icon-btn { background: transparent; border: none; cursor: pointer; color: var(--text-light); font-size: 16px; padding: 4px; border-radius: 4px; }
+        .icon-btn:hover { color: var(--danger); background: var(--danger-bg); }
+        
+        /* Dashboard da Turma Selecionada */
+        .dashboard-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        
+        /* Tabela */
+        .table-container { background: var(--surface); border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; text-align: left; }
+        th { background-color: #f9fafb; padding: 15px 10px; font-size: 12px; color: var(--text-light); font-weight: 600; border-bottom: 1px solid var(--border); white-space: nowrap; }
+        td { padding: 10px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+        
+        /* Inputs de Notas */
+        .grade-cell { display: flex; align-items: center; gap: 4px; }
+        .grade-input { width: 45px; padding: 6px 4px; border: 1px solid var(--border); border-radius: 4px; text-align: center; font-size: 14px; outline-color: var(--primary); }
+        .check-btn { background: #f3f4f6; border: 1px solid var(--border); border-radius: 4px; color: var(--primary); width: 22px; height: 22px; cursor: pointer; font-size: 12px; display: flex; justify-content: center; align-items: center; transition: 0.2s; }
+        .check-btn:hover { background: var(--primary); color: white; }
+
+        .final-grade { font-weight: 700; font-size: 15px; text-align: center; }
+        .status { font-weight: 500; font-size: 13px; padding: 4px 8px; border-radius: 4px; display: inline-block; text-align: center; width: 100%; }
+        .status.aprovado { background: var(--success-bg); color: var(--success); }
+        .status.recuperacao { background: var(--danger-bg); color: var(--danger); }
+        
+        /* Modais (Janelas Customizadas) */
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: none; justify-content: center; align-items: center; z-index: 1000; }
+        .modal-overlay.active { display: flex; }
+        .modal-box { background: white; padding: 25px; border-radius: 12px; width: 100%; max-width: 400px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); }
+        .modal-box h3 { margin-bottom: 20px; font-size: 18px; }
+        .modal-box p { margin-bottom: 20px; font-size: 14px; color: var(--text-light); line-height: 1.5; }
+        .input-group { margin-bottom: 15px; }
+        .input-group label { display: block; font-size: 12px; color: var(--text-light); margin-bottom: 5px; }
+        .input-group input { width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 6px; font-size: 14px; outline-color: var(--primary); }
+        .modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; }
+
+        .empty-state { padding: 40px; text-align: center; color: var(--text-light); }
+
+        /* Estilos de Impressão (PDF) */
+        @media print {
+            @page { size: landscape; margin: 10mm; }
+            body { padding: 0; background: white; }
+            .header, .classes-section, .dashboard-header .btn, .delete-btn, .check-btn, .icon-btn { display: none !important; }
+            
+            .table-container { box-shadow: none; overflow: visible !important; border-radius: 0; }
+            
+            table { width: 100%; table-layout: auto; font-size: 12px; }
+            th { padding: 8px 4px !important; font-size: 11px; white-space: normal; text-align: center; }
+            td { padding: 6px 4px !important; text-align: center; }
+            table, th, td { border: 1px solid #000; }
+            
+            .grade-cell { display: block; }
+            .grade-input { border: none; font-weight: bold; padding: 0; width: 100%; text-align: center; font-size: 12px; background: transparent; }
+            
+            .status { border: none; background: transparent !important; padding: 0; width: auto; font-weight: bold; }
+            .status.aprovado { color: #000; }
+            .status.recuperacao { color: #000; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <h1><img src="Cabecalho.png" class="custom-icon" alt="Ícone"> Diário Escolar</h1>
+    </div>
+
+    <div class="main-layout">
+        <!-- Gerenciador de Turmas -->
+        <div class="classes-section">
+            <div class="classes-header">
+                <h2><img src="Turmas.png" class="custom-icon" alt="Ícone"> Minhas Turmas</h2>
+                <button class="btn" onclick="openClassModal()">+ Nova Turma</button>
+            </div>
+            <div class="classes-grid" id="classesContainer">
+                <!-- Turmas aparecerão aqui -->
+            </div>
+        </div>
+
+        <!-- Dashboard da Turma -->
+        <div id="classDashboard" style="display: none;">
+            <div class="dashboard-header">
+                <div>
+                    <h2 id="currentClassTitle" style="color: var(--primary);">Turma</h2>
+                    <p id="currentClassSubject" style="color: var(--text-light); font-size: 14px;"></p>
+                </div>
+                <div style="display: flex; gap: 10px;">
+                    <button class="btn btn-outline" onclick="window.print()">🖨️ Imprimir/PDF</button>
+                    <button class="btn" onclick="openStudentModal()">👤 Add Aluno</button>
+                </div>
+            </div>
+
+            <div class="table-container">
+                <table id="gradesTable">
+                    <thead>
+                        <tr>
+                            <th style="text-align: left;">ALUNO</th>
+                            <th>TAREFAS (8)</th>
+                            <th>COMP. (1)</th>
+                            <th>PART. (1)</th>
+                            <th>WRITING (2.5)</th>
+                            <th>READING (2.5)</th>
+                            <th>LISTEN (2.5)</th>
+                            <th>SPEAK (2.5)</th>
+                            <th style="text-align: center;">MÉDIA FINAL</th>
+                            <th style="text-align: center;">SITUAÇÃO</th>
+                            <th class="delete-btn"></th>
+                        </tr>
+                    </thead>
+                    <tbody id="studentsBody">
+                        <!-- Alunos aparecerão aqui -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Nova Turma -->
+    <div class="modal-overlay" id="classModal">
+        <div class="modal-box">
+            <h3>Nova Turma</h3>
+            <div class="input-group">
+                <label>Nome da Turma</label>
+                <input type="text" id="newClassName" placeholder="Ex: 5º Ano B">
+            </div>
+            <div class="input-group">
+                <label>Disciplina</label>
+                <input type="text" id="newClassSubject" placeholder="Ex: Inglês">
+            </div>
+            <div class="modal-actions">
+                <button class="btn btn-outline" onclick="closeModals()">Cancelar</button>
+                <button class="btn" onclick="saveClass()">Salvar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Novo Aluno -->
+    <div class="modal-overlay" id="studentModal">
+        <div class="modal-box">
+            <h3>Adicionar Aluno</h3>
+            <div class="input-group">
+                <label>Nome do Aluno</label>
+                <input type="text" id="newStudentName" placeholder="Ex: João Silva">
+            </div>
+            <div class="modal-actions">
+                <button class="btn btn-outline" onclick="closeModals()">Cancelar</button>
+                <button class="btn" onclick="saveStudent()">Adicionar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Excluir Turma -->
+    <div class="modal-overlay" id="deleteClassModal">
+        <div class="modal-box">
+            <h3>Excluir Turma</h3>
+            <p>Tem certeza que deseja apagar esta turma inteira com todas as notas? Esta ação não pode ser desfeita.</p>
+            <div class="modal-actions">
+                <button class="btn btn-outline" onclick="closeModals()">Cancelar</button>
+                <button class="btn btn-danger" onclick="confirmDeleteClass()">Excluir Turma</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Excluir Aluno -->
+    <div class="modal-overlay" id="deleteStudentModal">
+        <div class="modal-box">
+            <h3>Remover Aluno</h3>
+            <p>Tem certeza que deseja remover este aluno? Suas notas também serão apagadas.</p>
+            <div class="modal-actions">
+                <button class="btn btn-outline" onclick="closeModals()">Cancelar</button>
+                <button class="btn btn-danger" onclick="confirmDeleteStudent()">Remover Aluno</button>
+            </div>
+        </div>
+    </div>
+
+<script>
+    const maxScores = { tarefas: 8, comp: 1, part: 1, writing: 2.5, reading: 2.5, listen: 2.5, speak: 2.5 };
+
+    let appData = JSON.parse(localStorage.getItem('diarioEscolarDataV2')) || {
+        classes: [], currentClassId: null
+    };
+    
+    // Variáveis para armazenar IDs de exclusão
+    let classToDeleteId = null;
+    let studentToDeleteId = null;
+
+    function init() { renderClasses(); }
+    function saveData() { localStorage.setItem('diarioEscolarDataV2', JSON.stringify(appData)); }
+
+    // --- GERENCIAMENTO DE TURMAS ---
+    function renderClasses() {
+        const container = document.getElementById('classesContainer');
+        container.innerHTML = '';
+        
+        if (appData.classes.length === 0) {
+            container.innerHTML = `<p class="empty-state">Nenhuma turma cadastrada. Crie sua primeira turma!</p>`;
+            document.getElementById('classDashboard').style.display = 'none';
+            return;
+        }
+
+        appData.classes.forEach(cls => {
+            const isActive = cls.id === appData.currentClassId ? 'active' : '';
+            const card = document.createElement('div');
+            card.className = `class-card ${isActive}`;
+            card.onclick = () => selectClass(cls.id);
+            card.innerHTML = `
+                <div class="class-info">
+                    <h3>${cls.name}</h3>
+                    <p>${cls.subject}</p>
+                </div>
+                <button class="icon-btn" onclick="openDeleteClassModal(event, ${cls.id})" title="Excluir Turma">🗑️</button>
+            `;
+            container.appendChild(card);
+        });
+
+        if (appData.currentClassId) selectClass(appData.currentClassId);
+    }
+
+    function selectClass(id) {
+        appData.currentClassId = id;
+        saveData();
+        renderClassesUIOnly();
+        
+        const currentClass = appData.classes.find(c => c.id === id);
+        if (currentClass) {
+            document.getElementById('classDashboard').style.display = 'block';
+            document.getElementById('currentClassTitle').innerText = currentClass.name;
+            document.getElementById('currentClassSubject').innerText = currentClass.subject;
+            renderTable();
+        }
+    }
+
+    function renderClassesUIOnly() {
+        document.querySelectorAll('.class-card').forEach(card => card.classList.remove('active'));
+        const activeCard = Array.from(document.querySelectorAll('.class-card')).find(card => 
+            card.querySelector('h3').innerText === appData.classes.find(c => c.id === appData.currentClassId)?.name
+        );
+        if(activeCard) activeCard.classList.add('active');
+    }
+
+    function saveClass() {
+        const name = document.getElementById('newClassName').value.trim();
+        const subject = document.getElementById('newClassSubject').value.trim();
+        if (!name) return alert("Preencha o nome da turma!");
+        
+        const newClass = { id: Date.now(), name, subject, students: [] };
+        appData.classes.push(newClass);
+        appData.currentClassId = newClass.id;
+        
+        saveData();
+        closeModals();
+        renderClasses();
+    }
+
+    function openDeleteClassModal(event, id) {
+        event.stopPropagation(); 
+        classToDeleteId = id;
+        document.getElementById('deleteClassModal').classList.add('active');
+    }
+
+    function confirmDeleteClass() {
+        if (classToDeleteId !== null) {
+            appData.classes = appData.classes.filter(c => c.id !== classToDeleteId);
+            
+            if(appData.currentClassId === classToDeleteId) {
+                appData.currentClassId = appData.classes.length ? appData.classes[0].id : null;
+            }
+            
+            saveData();
+            renderClasses();
+            closeModals();
+        }
+    }
+
+    // --- GERENCIAMENTO DE ALUNOS E NOTAS ---
+    function saveStudent() {
+        const name = document.getElementById('newStudentName').value.trim();
+        if (!name) return alert("Preencha o nome do aluno!");
+        
+        const currentClass = appData.classes.find(c => c.id === appData.currentClassId);
+        currentClass.students.push({
+            id: Date.now(), name,
+            scores: { tarefas: 0, comp: 0, part: 0, writing: 0, reading: 0, listen: 0, speak: 0 }
+        });
+        
+        saveData();
+        closeModals();
+        renderTable();
+    }
+
+    function openDeleteStudentModal(id) {
+        studentToDeleteId = id;
+        document.getElementById('deleteStudentModal').classList.add('active');
+    }
+
+    function confirmDeleteStudent() {
+        if (studentToDeleteId !== null) {
+            const currentClass = appData.classes.find(c => c.id === appData.currentClassId);
+            currentClass.students = currentClass.students.filter(s => s.id !== studentToDeleteId);
+            saveData();
+            renderTable();
+            closeModals();
+        }
+    }
+
+    function updateScore(studentId, field, inputElement) {
+        const currentClass = appData.classes.find(c => c.id === appData.currentClassId);
+        const student = currentClass.students.find(s => s.id === studentId);
+        
+        let value = parseFloat(inputElement.value.replace(',', '.')) || 0;
+        if (value > maxScores[field]) value = maxScores[field];
+        if (value < 0) value = 0;
+        
+        inputElement.value = value; 
+        student.scores[field] = value;
+        saveData();
+        updateFinalGradeUI(student);
+    }
+
+    function maxCheck(studentId, field, inputId) {
+        const inputElement = document.getElementById(inputId);
+        inputElement.value = maxScores[field];
+        updateScore(studentId, field, inputElement);
+    }
+
+    function updateFinalGradeUI(student) {
+        const totalRaw = Object.values(student.scores).reduce((a, b) => a + b, 0);
+        const finalGrade = ((totalRaw / 20) * 10).toFixed(1);
+        
+        document.getElementById(`grade-${student.id}`).innerText = finalGrade;
+        const statusCell = document.getElementById(`status-${student.id}`);
+        
+        if (finalGrade >= 6.0) {
+            statusCell.innerHTML = `<span class="status aprovado">Aprovado</span>`;
+        } else {
+            statusCell.innerHTML = `<span class="status recuperacao">Recuperação</span>`;
+        }
+    }
+
+    function renderTable() {
+        const tbody = document.getElementById('studentsBody');
+        tbody.innerHTML = '';
+        const currentClass = appData.classes.find(c => c.id === appData.currentClassId);
+        
+        if (currentClass.students.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="11" class="empty-state">Nenhum aluno cadastrado nesta turma.</td></tr>`;
+            return;
+        }
+
+        currentClass.students.forEach(student => {
+            const tr = document.createElement('tr');
+            let scoresHTML = '';
+            for (const [field, max] of Object.entries(maxScores)) {
+                const inputId = `input-${student.id}-${field}`;
+                scoresHTML += `
+                    <td>
+                        <div class="grade-cell">
+                            <input type="number" id="${inputId}" class="grade-input" step="0.5" max="${max}" min="0" value="${student.scores[field]}" oninput="updateScore(${student.id}, '${field}', this)">
+                            <button class="check-btn" title="Dar nota máxima" onclick="maxCheck(${student.id}, '${field}', '${inputId}')">✓</button>
+                        </div>
+                    </td>
+                `;
+            }
+
+            tr.innerHTML = `
+                <td style="font-weight: 500; text-align: left;">${student.name}</td>
+                ${scoresHTML}
+                <td class="final-grade" id="grade-${student.id}">0.0</td>
+                <td id="status-${student.id}">-</td>
+                <td class="delete-btn"><button class="icon-btn" onclick="openDeleteStudentModal(${student.id})" title="Remover Aluno">🗑️</button></td>
+            `;
+            tbody.appendChild(tr);
+            updateFinalGradeUI(student);
+        });
+    }
+
+    // --- CONTROLE DE MODAIS (JANELAS) ---
+    function openClassModal() {
+        document.getElementById('newClassName').value = '';
+        document.getElementById('newClassSubject').value = '';
+        document.getElementById('classModal').classList.add('active');
+        document.getElementById('newClassName').focus();
+    }
+    
+    function openStudentModal() {
+        document.getElementById('newStudentName').value = '';
+        document.getElementById('studentModal').classList.add('active');
+        document.getElementById('newStudentName').focus();
+    }
+    
+    function closeModals() {
+        document.getElementById('classModal').classList.remove('active');
+        document.getElementById('studentModal').classList.remove('active');
+        document.getElementById('deleteClassModal').classList.remove('active');
+        document.getElementById('deleteStudentModal').classList.remove('active');
+        classToDeleteId = null; 
+        studentToDeleteId = null; 
+    }
+
+    init();
+</script>
+</body>
+</html>
